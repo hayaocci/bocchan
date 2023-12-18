@@ -1,0 +1,10 @@
+src/AI/rawdata
+src/AI/data
+src/AI/gomi
+.vscode/*
+*.h5
+*.jpg
+*.xml
+*.txt
+src/detection/**/*.png
+*.jpeg

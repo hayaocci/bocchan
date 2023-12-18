@@ -1,0 +1,3 @@
+# IMG_SIZE =
+# IMG_SIZE = (256, 256)
+IMG_SIZE = (512, 512)
