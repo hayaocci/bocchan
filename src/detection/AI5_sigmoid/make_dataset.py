@@ -24,6 +24,29 @@ def write_label(label_path, output_size):
             label[y, x] = 1
     return label
 
+def write_label2(label_path, output_size):
+    # Read the label image
+    label_img = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
+
+    # Resize the label image to match the specified output size
+    label_img = cv2.resize(label_img, (output_size[1], output_size[0]))
+
+    # # Binarize the label image (assuming it's a grayscale image)
+    # _, label_binary = cv2.threshold(label_img, 1, 255, cv2.THRESH_BINARY)
+
+    # # Normalize values to 0 or 1
+    # label_binary = label_binary / 255.0
+
+    _, label_binary = cv2.threshold(label_img, 128, 255, cv2.THRESH_BINARY)
+    # plt.subplot(1, 2, 1)
+    # plt.imshow(label_img)
+    # plt.subplot(1, 2, 2)
+    # plt.imshow(label_binary)
+    # plt.show()
+
+    # print(label_binary.shape)
+
+    return label_binary
 
 def crop_center(img, width, height):
     # 画像のサイズを取得
@@ -61,7 +84,9 @@ if __name__ == "__main__":
         shutil.rmtree(DATA_DIR)
     os.makedirs(DATA_DIR)
 
-    train_dir = "rawdata/train"
+    # train_dir = "rawdata/train"
+    train_dir = "taguchi_dataset/train"
+
     img_train_pathes = os.listdir(os.path.join(train_dir, "images"))
     label_train_pathes = os.listdir(os.path.join(train_dir, "labels"))
 
@@ -75,22 +100,30 @@ if __name__ == "__main__":
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         small_rate = 0.25
-        small_height = int(img.shape[0] * small_rate)
-        small_width = int(img.shape[1] * small_rate)
+        # small_height = int(img.shape[0] * small_rate)
+        # small_width = int(img.shape[1] * small_rate)
+        small_height = 96
+        small_width = 96
         small_img = cv2.resize(img, (small_width, small_height))
-        small_label = write_label(label_path, (small_height, small_width))
+        
+        # グレースケール化
+        # small_img = cv2.cvtColor(small_img, cv2.COLOR_RGB2GRAY)
+
+        small_label = write_label2(label_path, (12, 12))
+
+        # print(small_img.shape)
 
         # plt.subplot(1, 2, 1)
         # plt.imshow(small_img)
         # plt.subplot(1, 2, 2)
         # plt.imshow(small_label)
         # plt.show()
-        center_crop_img = crop_center(small_img, INPUT_SIZE[0], INPUT_SIZE[1])
-        center_crop_label = crop_center(small_label, INPUT_SIZE[0], INPUT_SIZE[1])
-        center_crop_label = func.convert_label(center_crop_label, LABEL_SIZE)
+        # center_crop_img = crop_center(small_img, INPUT_SIZE[0], INPUT_SIZE[1])
+        # center_crop_label = crop_center(small_label, INPUT_SIZE[0], INPUT_SIZE[1])
+        # center_crop_label = func.convert_label(center_crop_label, LABEL_SIZE)
         # print(center_crop_img.shape)
-        if center_crop_img.shape[:2] != INPUT_SIZE:
-            continue
+        # if center_crop_img.shape[:2] != INPUT_SIZE:
+        #     continue
         save_path = os.path.join(DATA_DIR, str(count) + ".h5")
         # plt.subplot(1, 2, 1)
         # plt.imshow(center_crop_img)
@@ -98,12 +131,14 @@ if __name__ == "__main__":
         # plt.imshow(center_crop_label)
         # plt.show()
 
-        gray = cv2.cvtColor(center_crop_img, cv2.COLOR_RGB2GRAY)
-        # center_crop_img = np.stack([gray, gray, gray], axis=-1)
-        gray = gray.reshape(gray.shape[0], gray.shape[1], 1)
+        # gray = cv2.cvtColor(small_label, cv2.COLOR_RGB2GRAY)
+        # # center_crop_img = np.stack([gray, gray, gray], axis=-1)
+        # gray = gray.reshape(gray.shape[0], gray.shape[1], 1)
 
+        small_label = np.expand_dims(small_label, axis=-1)
+        
         with h5py.File(save_path, "w") as f:
-            f.create_dataset("img", data=gray)
-            f.create_dataset("label", data=center_crop_label)
+            f.create_dataset("img", data=small_img)
+            f.create_dataset("label", data=small_label)
             # print(f"save: {save_path}")
         count += 1

@@ -156,7 +156,9 @@ y_valid = np.array(y_valid)
 
 # mobilenet = Mobily
 
-complessed_mobilenet = keras.models.load_model("model/trained_model.h5")
+# complessed_mobilenet = keras.models.load_model("model/trained_model.h5")
+complessed_mobilenet = keras.models.load_model("model/base_model_96_cut.h5")
+
 for layer in complessed_mobilenet.layers:
     layer.trainable = False
 
@@ -238,7 +240,7 @@ else:
 
     shutil.rmtree(test_dir)
     os.mkdir(test_dir)
-test_img_dir = "test"
+test_img_dir = "taguchi_dataset/test/images"
 for i, img in enumerate(tqdm(os.listdir(test_img_dir))):
     img = os.path.join(test_img_dir, img)
     img = cv2.imread(img)

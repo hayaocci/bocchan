@@ -24,6 +24,35 @@ def write_label(label_path, output_size):
             label[y, x] = 1
     return label
 
+# def write_label2(label_path, output_size):
+#     """
+#     created by tag
+#     """
+
+#     # label = np.zeros(output_size)
+
+#     label = cv2.imread(label_path)
+#     label = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+
+
+#     return label
+
+def write_label2(label_path, output_size):
+    # Read the label image
+    label_img = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
+
+    # Resize the label image to match the specified output size
+    label_img = cv2.resize(label_img, (output_size[1], output_size[0]))
+
+    # Binarize the label image (assuming it's a grayscale image)
+    _, label_binary = cv2.threshold(label_img, 1, 255, cv2.THRESH_BINARY)
+
+    # Normalize values to 0 or 1
+    label_binary = label_binary / 255.0
+
+    return label_binary
+
 
 def crop_center(img, width, height):
     # 画像のサイズを取得
@@ -61,7 +90,8 @@ if __name__ == "__main__":
         shutil.rmtree(DATA_DIR)
     os.makedirs(DATA_DIR)
 
-    train_dir = "impulse_datset/train"
+    # train_dir = "impulse_datset/train"
+    train_dir = "taguchi_dataset/train"
     img_train_pathes = os.listdir(os.path.join(train_dir, "images"))
     label_train_pathes = os.listdir(os.path.join(train_dir, "labels"))
 
@@ -74,7 +104,7 @@ if __name__ == "__main__":
         img = cv2.imread(img_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         img = cv2.resize(img, INPUT_SIZE)
-        label = write_label(label_path, LABEL_SIZE)
+        label = write_label2(label_path, LABEL_SIZE)
         img = np.expand_dims(img, axis=-1)
         # print(img.shape)
         # plt.subplot(1, 2, 1)
@@ -88,7 +118,11 @@ if __name__ == "__main__":
             f.create_dataset("label", data=label)
             # print(f"save: {save_path}")
         count += 1
-    valid_dir = "impulse_datset/test"
+
+
+
+    # valid_dir = "impulse_datset/test"
+    valid_dir = "taguchi_dataset/test"
     img_valid_pathes = os.listdir(os.path.join(valid_dir, "images"))
     label_valid_pathes = os.listdir(os.path.join(valid_dir, "labels"))
     for img_path, label_path in zip(tqdm(img_valid_pathes), label_valid_pathes):
@@ -98,7 +132,7 @@ if __name__ == "__main__":
         img = cv2.imread(img_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         img = cv2.resize(img, INPUT_SIZE)
-        label = write_label(label_path, LABEL_SIZE)
+        label = write_label2(label_path, LABEL_SIZE)
         img = np.expand_dims(img, axis=-1)
         # print(img.shape)
         # plt.subplot(1, 2, 1)
