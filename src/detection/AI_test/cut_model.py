@@ -13,7 +13,7 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras.models import Model
 
 # model = tf.keras.models.load_model('trained_model.h5')
-model = tf.keras.models.load_model('base_model_96.h5')
+model = tf.keras.models.load_model('random_model_96.h5')
 
 layer_names = [l.name for l in model.layers]
 
@@ -25,7 +25,7 @@ new_model = Model(inputs=model.layers[0].input, outputs=model.layers[56].output)
 
 new_model.summary()
 
-new_model.save('base_model_96_cut.h5')
+new_model.save('random_model_96_cut.h5')
 
 # keras.utils.plot_model(new_model, "mini_resnet.png", show_shapes=True)
 

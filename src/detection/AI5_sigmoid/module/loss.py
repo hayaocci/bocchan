@@ -3,12 +3,12 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras import backend as K
 
 
-def cross_loss(targets, inputs, class_weights=tf.constant([1.0, 100.0])):
+def cross_loss(targets, inputs, class_weights=tf.constant([1.0, 1.0])):
     # クロスエントロピー損失を計算し、クラスごとに重みを適用
     # print(targets.sinputsoutput.shape)
     inputs = tf.cast(inputs, dtype=tf.float32)
     targets = tf.cast(targets, dtype=tf.float32)
-    print(inputs.shape, targets.shape)
+    # print(inputs.shape, targets.shape)
     # targets = targets[:, :, :, 1]
     # inputs = inputs[:, :, :, 1]
     inputs = K.flatten(inputs)

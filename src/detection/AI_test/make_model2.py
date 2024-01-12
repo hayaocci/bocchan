@@ -17,7 +17,7 @@ model = tf.keras.applications.mobilenet_v2.MobileNetV2(
     input_shape=(96, 96, 3),
     alpha=0.35,
     include_top=True,
-    weights='imagenet',
+    weights=None,
     input_tensor=None,
     pooling=None,
     classes=1000,
@@ -27,4 +27,4 @@ model = tf.keras.applications.mobilenet_v2.MobileNetV2(
 
 print(model.summary())
 
-model.save('base_model_96.h5')
+model.save('random_model_96.h5')

@@ -38,6 +38,8 @@ def write_label2(label_path, output_size):
     # label_binary = label_binary / 255.0
 
     _, label_binary = cv2.threshold(label_img, 128, 255, cv2.THRESH_BINARY)
+    label_binary = label_binary / 255.0
+
     # plt.subplot(1, 2, 1)
     # plt.imshow(label_img)
     # plt.subplot(1, 2, 2)
@@ -45,6 +47,9 @@ def write_label2(label_path, output_size):
     # plt.show()
 
     # print(label_binary.shape)
+
+    # print(np.max(label_binary))
+    # print(np.min(label_binary))
 
     return label_binary
 

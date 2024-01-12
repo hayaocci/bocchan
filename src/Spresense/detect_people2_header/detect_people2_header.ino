@@ -11,12 +11,12 @@
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
 // uint32_t color_codes[] = {ILI9341_ORANGE};
-// #include "spresense_model_quant.h"
+#include "spresense_model_quant2.h"
 #include "_lib_display.h"
 #include "_lib_camera.h"
 #include "_lib_detection.h"
 #include "_lib_file.h"
-#include "impulse.h"
+// #include "impulse.h"
 tflite::ErrorReporter *error_reporter = nullptr;
 const tflite::Model *model = nullptr;
 tflite::MicroInterpreter *interpreter = nullptr;
@@ -159,8 +159,8 @@ void loop()
     bool *result_mask1 = detect_people(sbuf1, 0.7);
 
     disp_image_result(sbuf1, 0, 0, target_w, target_h, result_mask1);
-    int dfs_count = countDFS(result_mask1);
-    print("dfs_count: " + String(dfs_count) + "\n");
+    // int dfs_count = countDFS(result_mask1);
+    // print("dfs_count: " + String(dfs_count) + "\n");
     free(result_mask1);
 }
 
