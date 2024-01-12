@@ -21,6 +21,8 @@ from keras.callbacks import CSVLogger
 from keras.models import Model
 from tensorflow.keras.applications import MobileNet, MobileNetV2
 from tensorflow import keras
+from keras.callbacks import ModelCheckpoint
+
 
 # import tensorflow_model_optimization as tfmot
 from keras import backend as K
@@ -34,13 +36,13 @@ import cv2
 from module.const import *
 from module import func, loss
 import random
-
+from keras.models import load_model
+import keras.backend as K
 
 def set_seed(seed=42):
     tf.random.set_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
-
 
 set_seed()
 # %%
@@ -67,8 +69,8 @@ for path in os.listdir(DATA_DIR):
         img = f["img"][:]
         label = f["label"][:]
         label_semaseg = np.zeros((label.shape[0], label.shape[1], 2))
-        label_semaseg[:, :, 1] = label[:, :]
-        label_semaseg[:, :, 0] = 1 - label[:, :]
+        label_semaseg[:, :, 1] = label[:, :, 0]
+        label_semaseg[:, :, 0] = 1 - label[:, :, 0]
         # plt.subplot(1, 2, 1)
         # plt.imshow(img)
         # plt.subplot(1, 2, 2)
@@ -76,7 +78,6 @@ for path in os.listdir(DATA_DIR):
         # plt.show()
 
     dataset.append((img, label_semaseg))
-    # dataset.append((img, label))
     # plt.subplot(1, 2, 1)
     # plt.imshow(img)
     # plt.subplot(1, 2, 2)
@@ -90,6 +91,8 @@ random_idx = random_idx + list(range(len(dataset) * 133 // 150, len(dataset)))
 # データをランダムに取得するためのインデックス
 # random.shuffle(random_idx)
 # データ取得。データ数が少ないため、auguentationを行う。回転、反転、明るさ調整を行い、学習データに追加。
+all_num = 0
+positive_count = 0
 for i, (img, label) in enumerate(tqdm(dataset)):
     if i < len(dataset) * 133 // 150:
         img_trans = img
@@ -97,6 +100,8 @@ for i, (img, label) in enumerate(tqdm(dataset)):
 
         x_train.append(img_trans)
         y_train.append(cv2.resize(label, LABEL_SIZE))
+        all_num += LABEL_SIZE[0] * LABEL_SIZE[1]
+        positive_count += np.sum(label)
         # print(label.shape, cv2.resize(label, LABEL_SIZE).shape)
         # img_trans = np.fliplr(img_trans)
         # img_trans = func.augment_brightness(img_trans)
@@ -106,6 +111,8 @@ for i, (img, label) in enumerate(tqdm(dataset)):
     else:
         x_valid.append(img)
         y_valid.append(cv2.resize(label, LABEL_SIZE))
+print(f"all_num: {all_num}, positive_count: {positive_count}")
+print(all_num / positive_count)
 # positive_count = 0
 # for i, idx in enumerate(tqdm(random_idx)):
 #     img, label = dataset[idx]
@@ -151,9 +158,11 @@ y_valid = np.array(y_valid)
 
 # mobilenet = Mobily
 
-complessed_mobilenet = keras.models.load_model("model/trained_model.h5")
+# complessed_mobilenet = keras.models.load_model("model/trained_model.h5")
+complessed_mobilenet = keras.models.load_model("model/random_model_96_cut.h5")
+
 for layer in complessed_mobilenet.layers:
-    layer.trainable = False
+    layer.trainable = True
 
 # 出力をlabelsizeに合わせるための変数を定義。)
 mobile_output = 12
@@ -182,12 +191,20 @@ custom_model = tf.keras.models.Sequential(
         ),
         BatchNormalization(),
         Conv2D(
+            filters=32, # わんちゃん16
+            kernel_size=1,
+            strides=1,
+            padding="same",
+            activation="relu",
+        ),
+        BatchNormalization(),
+        Conv2D(
             filters=2,
             kernel_size=1,
             strides=1,
             padding="same",
-            activation="softmax",
-            bias_initializer=tf.keras.initializers.Constant(value=0.0),
+            activation="sigmoid",
+            bias_initializer=tf.keras.initializers.Constant(value=0),
         ),
     ]
 )
@@ -207,16 +224,32 @@ print(y_train.shape, y_valid.shape)
 custom_model.compile(
     loss=loss.cross_loss,
     # loss=loss.DiceLoss,
-    optimizer=Adam(learning_rate=0.001),
+    optimizer=Adam(learning_rate=0.0005),
     metrics=[loss.IoU],
 )
 custom_model.fit(
     x_train,
     y_train,
-    batch_size=32,
-    epochs=200,
+    batch_size=128,
+    epochs=100,
     validation_data=(x_valid, y_valid),
+    callbacks=[
+        ModelCheckpoint(
+            filepath="model/best_model.h5",
+            monitor="val_IoU",
+            verbose=1,
+            save_best_only=True,
+            save_weights_only=False,
+            mode="max",
+            period=1,
+        ),
+        CSVLogger("model/training_log.csv"),
+    ],
 )
+
+# custom_model_path = "model/custom_model.h5"
+# custom_model.save(custom_model_path)
+
 
 
 # %%
@@ -225,106 +258,122 @@ custom_model.fit(
 テストデータでテスト
 """
 
-test_dir = "test_result"
+test_dir = "test_result_main/test_ver1"
 if os.path.exists(test_dir) == False:
-    os.mkdir(test_dir)
+    os.makedirs(test_dir)
 else:
     import shutil
 
     shutil.rmtree(test_dir)
     os.mkdir(test_dir)
-test_img_dir = "test"
-for i, img in enumerate(tqdm(os.listdir(test_img_dir))):
+test_img_dir = "taguchi_dataset/test/images"
+test_label_dir = "taguchi_dataset/test/labels"
+custom_model = load_model("model/best_model.h5", custom_objects={'cross_loss': loss.cross_loss, 'IoU': loss.IoU})
+# custom_model = keras.models.load_model("model/best_model.h5")
+
+# %%
+# for i, img in enumerate(tqdm(os.listdir(test_img_dir))):
+# for i, (img, label) in enumerate(tqdm(zip(os.listdir(test_img_dir), os.listdir(test_label_dir)))):
+for i, (img, label) in enumerate(zip(tqdm(os.listdir(test_img_dir), os.listdir(test_label_dir)))):
     img = os.path.join(test_img_dir, img)
     img = cv2.imread(img)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = cv2.resize(img, INPUT_SIZE)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    label = os.path.join(test_label_dir, label)
+    label = cv2.imread(label)
+    # label = cv2.cvtColor(label, cv2.COLOR_BGR2GRAY)
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     img = np.array([img]) / 255
     pred = custom_model.predict(img)[0]
     # pred = np.argmax(pred, axis=2) #
     pred = pred[:, :, 1]
     # pred = np.array(pred * 255, dtype=np.uint8)
     # cv2.imwrite(os.path.join(test_dir, "result.png"), pred)
-    plt.subplot(1, 2, 1)
-    plt.imshow(img[0])
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 3, 1)
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)　# これを入れると色がおかしくなる？？
+    plt.imshow(img[0], cmap="gray")
+    plt.subplot(1, 3, 2)
+    plt.imshow(label, cmap="gray")
+    plt.subplot(1, 3, 3)
     plt.imshow(pred, vmin=0, vmax=1)
     # plt.show()
     plt.savefig(os.path.join(test_dir, f"{i}.png"))
     plt.close()
     # break
-# # %%
-# """
-# save Model
-# """
-# if os.path.exists(MODEL_DIR) == False:
-#     os.mkdir(MODEL_DIR)
+# %%
+"""
+save Model
+"""
+if os.path.exists(MODEL_DIR) == False:
+    os.mkdir(MODEL_DIR)
 
-# custom_model.save(FULL_MODEL_PATH)
-# conveter = tf.lite.TFLiteConverter.from_keras_model(custom_model)
-# tflite_model = conveter.convert()
-# float_model_size = len(tflite_model) / 1024 / 1024
-# print(f"float model size: {float_model_size} MB")
-# open(TFLITE_MODEL_PATH, "wb").write(tflite_model)
-
-
-# import binascii
+custom_model.save(FULL_MODEL_PATH)
+conveter = tf.lite.TFLiteConverter.from_keras_model(custom_model)
+tflite_model = conveter.convert()
+float_model_size = len(tflite_model) / 1024 / 1024
+print(f"float model size: {float_model_size} MB")
+open(TFLITE_MODEL_PATH, "wb").write(tflite_model)
 
 
-# def convert_to_c_array(bytes) -> str:
-#     hexstr = binascii.hexlify(bytes).decode("UTF-8")
-#     hexstr = hexstr.upper()
-#     array = ["0x" + hexstr[i : i + 2] for i in range(0, len(hexstr), 2)]
-#     array = [array[i : i + 10] for i in range(0, len(array), 10)]
-#     return ",\n  ".join([", ".join(e) for e in array])
+import binascii
 
 
-# tflite_binary = open(TFLITE_MODEL_PATH, "rb").read()
-# ascii_bytes = convert_to_c_array(tflite_binary)
-# header_file = (
-#     "const unsigned char model_tflite[] = {\n  "
-#     + ascii_bytes
-#     + "\n};\nunsigned int model_tflite_len = "
-#     + str(len(tflite_binary))
-#     + ";"
-# )
-# # print(c_file)
-# open(HEADER_MODEL_PATH, "w").write(header_file)
-# open(SPRESENSE_HEADER_MODEL_PATH, "w").write(header_file)
-# # %%
-# print("--------start quantization--------")
+def convert_to_c_array(bytes) -> str:
+    hexstr = binascii.hexlify(bytes).decode("UTF-8")
+    hexstr = hexstr.upper()
+    array = ["0x" + hexstr[i : i + 2] for i in range(0, len(hexstr), 2)]
+    array = [array[i : i + 10] for i in range(0, len(array), 10)]
+    return ",\n  ".join([", ".join(e) for e in array])
 
 
-# def representative_dataset_gen():
-#     for i in range(len(x_valid)):
-#         input_image = tf.cast(x_valid[i], tf.float32)
-#         input_image = tf.reshape(
-#             input_image, [1, INPUT_SIZE[0], INPUT_SIZE[1], INPUT_CHANNEL]
-#         )
-#         yield ([input_image])
+tflite_binary = open(TFLITE_MODEL_PATH, "rb").read()
+ascii_bytes = convert_to_c_array(tflite_binary)
+header_file = (
+    "const unsigned char model_tflite[] = {\n  "
+    + ascii_bytes
+    + "\n};\nunsigned int model_tflite_len = "
+    + str(len(tflite_binary))
+    + ";"
+)
+# print(c_file)
+open(HEADER_MODEL_PATH, "w").write(header_file)
+open(SPRESENSE_HEADER_MODEL_PATH, "w").write(header_file)
+# %%
+print("--------start quantization--------")
 
 
-# converter = tf.lite.TFLiteConverter.from_keras_model(custom_model)
-# converter.optimizations = [tf.lite.Optimize.DEFAULT]
-# converter.representative_dataset = representative_dataset_gen
-# converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-# converter.inference_input_type = tf.int8
-# converter.inference_output_type = tf.int8
-# tflite_quant_model = converter.convert()
+def representative_dataset_gen():
+    for i in range(len(x_valid)):
+        input_image = tf.cast(x_valid[i], tf.float32)
+        input_image = tf.reshape(
+            input_image, [1, INPUT_SIZE[0], INPUT_SIZE[1], INPUT_CHANNEL]
+        )
+        yield ([input_image])
 
-# tflite_quant_model_path = os.path.join(MODEL_DIR, "model_quant.tflite")
-# with open(tflite_quant_model_path, "wb") as f:
-#     f.write(tflite_quant_model)
-# spresense_quant_model_path = os.path.join(MODEL_DIR, "spresense_model_quant.h")
-# tflite_binary = open(tflite_quant_model_path, "rb").read()
-# ascii_bytes = convert_to_c_array(tflite_binary)
-# header_file = (
-#     "const unsigned char model_tflite[] = {\n  "
-#     + ascii_bytes
-#     + "\n};\nunsigned int model_tflite_len = "
-#     + str(len(tflite_binary))
-#     + ";"
-# )
 
-# open(HEADER_QUANT_MODEL_PATH, "w").write(header_file)
-# open(SPRESENSE_HEADER_QUANT_MODEL_PATH, "w").write(header_file)
+converter = tf.lite.TFLiteConverter.from_keras_model(custom_model)
+converter.optimizations = [tf.lite.Optimize.DEFAULT]
+converter.representative_dataset = representative_dataset_gen
+converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+converter.inference_input_type = tf.int8
+converter.inference_output_type = tf.int8
+tflite_quant_model = converter.convert()
+
+tflite_quant_model_path = os.path.join(MODEL_DIR, "model_quant.tflite")
+with open(tflite_quant_model_path, "wb") as f:
+    f.write(tflite_quant_model)
+spresense_quant_model_path = os.path.join(MODEL_DIR, "spresense_model_quant.h")
+tflite_binary = open(tflite_quant_model_path, "rb").read()
+ascii_bytes = convert_to_c_array(tflite_binary)
+header_file = (
+    "const unsigned char model_tflite[] = {\n  "
+    + ascii_bytes
+    + "\n};\nunsigned int model_tflite_len = "
+    + str(len(tflite_binary))
+    + ";"
+)
+
+open(HEADER_QUANT_MODEL_PATH, "w").write(header_file)
+open(SPRESENSE_HEADER_QUANT_MODEL_PATH, "w").write(header_file)
+
+# %%

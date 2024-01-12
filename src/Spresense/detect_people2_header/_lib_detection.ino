@@ -51,26 +51,44 @@ bool *detect_people(uint16_t *buf, float th_detect)
     // int count_people = 0;
     // tfliteに入力するために、データ構造を変換＆正規化スル。
     // カメラから直接得られる画像smallと、tfliteに入力するinputのデータ構造は異なる。(参考書「spresenseで始める～～」p 180参照)
-    // input = interpreter->input(0);
-    // output = interpreter->output(0);
+    input = interpreter->input(0);
+    output = interpreter->output(0);
+    // int n = 0;
+    // for (int y = 0; y < target_h; y++)
+    // {
+    //     for (int x = 0; x < target_w; x++)
+    //     {
+    //         uint16_t value = buf[y * target_w + x];
+    //         float r = (float)((value >> 11) & 0x1F) * 255 / 31;
+    //         float g = (float)((value >> 5) & 0x3F) * 255 / 63;
+    //         float b = (float)((value >> 0) & 0x1F) * 255 / 31;
+    //         // value = (y_h | y_l); /* luminance data */
+    //         float luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+    //         /* set the grayscale data to the input buffer for TensorFlow  */
+    //         luminance -= 128;
+    //         input->data.int8[n++] = (int8_t)luminance;
+    //         // Serial.println(String(input->data.f[n - 1]) + ", ");
+    //     }
+    //     // print("\n改行されたよ");
+    // }
     int n = 0;
+    int8_t *fbuf_r = input->data.int8 + target_h * target_w * 0;
+    int8_t *fbuf_g = input->data.int8 + target_h * target_w * 1;
+    int8_t *fbuf_b = input->data.int8 + target_h * target_w * 2;
     for (int y = 0; y < target_h; y++)
     {
         for (int x = 0; x < target_w; x++)
         {
             uint16_t value = buf[y * target_w + x];
-            float r = (float)((value >> 11) & 0x1F) * 255 / 31;
-            float g = (float)((value >> 5) & 0x3F) * 255 / 63;
-            float b = (float)((value >> 0) & 0x1F) * 255 / 31;
-            // value = (y_h | y_l); /* luminance data */
-            float luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-
-            /* set the grayscale data to the input buffer for TensorFlow  */
-            luminance -= 128;
-            input->data.int8[n++] = (int8_t)luminance;
-            // Serial.println(String(input->data.f[n - 1]) + ", ");
+            float r = (float)((value >> 11) & 0x1F) / 31.0 * 255 - 128;
+            float g = (float)((value >> 5) & 0x3F) / 63.0 * 255 - 128;
+            float b = (float)((value >> 0) & 0x1F) / 31.0 * 255 - 128;
+            fbuf_r[n++] = int8_t(r);
+            fbuf_g[n++] = int8_t(g);
+            fbuf_b[n++] = int8_t(b);
+            // n++;
         }
-        // print("\n改行されたよ");
     }
     // print("-----------");
 
@@ -99,7 +117,7 @@ bool *detect_people(uint16_t *buf, float th_detect)
             // int value = output->data.f[y * output_width + x];
             // value += 128;
             // value /= 255.0;
-            // Serial.print(String(value) + ", ");
+            Serial.print(String(value) + ", ");
             if (value >= th_detect)
             {
                 result_mask[y * output_width + x] = true;

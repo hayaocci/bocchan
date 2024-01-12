@@ -11,8 +11,8 @@ from module import func, loss
 import shutil
 from tqdm import tqdm
 
-TEST_DIR = "test"
-SAVE_DIR = "test_result"
+TEST_DIR = "taguchi_dataset/test/images"
+SAVE_DIR = "test_result_main/test_quant"
 if os.path.exists(SAVE_DIR):
     shutil.rmtree(SAVE_DIR)
 os.makedirs(SAVE_DIR)
@@ -26,7 +26,7 @@ class TFLitePredictor:
         self.output_details = self.interpreter.get_output_details()
 
     def __call__(self, input_data):
-        input_data = input_data.astype(np.float32)
+        # input_data = input_data.astype(np.int8)
         self.interpreter.set_tensor(self.input_details[0]["index"], input_data)
         self.interpreter.invoke()
         output_data = self.interpreter.get_tensor(self.output_details[0]["index"])
@@ -34,39 +34,89 @@ class TFLitePredictor:
 
 
 # print('Quantized model accuracy: ',evaluate_model(interpreter_quant))
-interpreter = TFLitePredictor(TFLITE_MODEL_PATH)
+interpreter = TFLitePredictor(TFLITE_QUANT_MODEL_PATH)
 
 
-imgs = os.listdir(TEST_DIR)
-imgs = imgs[::-1]
-count = 0
-for i, filename in enumerate(tqdm(imgs)):
-    img = cv2.imread(os.path.join(TEST_DIR, filename))
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+# imgs = os.listdir(TEST_DIR)
+# # imgs = imgs[::-1]
+# count = 0
+# for i, filename in enumerate(tqdm(imgs)):
+#     img = cv2.imread(os.path.join(TEST_DIR, filename))
+#     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+#     # img = np.expand_dims(img, axis=-1)
+
+#     # img = np.array(img).astype
+#     input_img = img.copy()
+#     input_img -= 128
+#     input_img = np.expand_dims(input_img, axis=0)
+#     # print(input_img.shape)
+#     input_img = input_img.astype(np.int8)
+#     # print(input_img.dtype)
+#     pred = interpreter(input_img)
+#     plt.subplot(1, 3, 1)
+#     # img += 128
+#     plt.imshow(img)
+#     plt.subplot(1, 3, 2)
+#     plt.imshow(func.draw_line(input_img[0]))
+
+#     plt.subplot(1, 3, 3)
+#     plt.imshow(pred[0, :, :, 1], vmin=0, vmax=1)
+#     save_path = os.path.join(SAVE_DIR, f"{i}.png")
+#     plt.savefig(save_path)
+#     plt.close()
+
+test_img_dir = "taguchi_dataset/test/images"
+test_label_dir = "taguchi_dataset/test/labels"
+
+for i, (img, label) in enumerate(zip(tqdm(os.listdir(test_img_dir), os.listdir(test_label_dir)))):
+    img = cv2.imread(os.path.join(test_img_dir, img))
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     # img = np.expand_dims(img, axis=-1)
-    splited_img_lst = func.split_img(img)
-    for splited_img in splited_img_lst:
-        splited_img = cv2.resize(splited_img, INPUT_SIZE)
-        splited_img = np.array([splited_img])
-        # print(splited_img.shape)
-        splited_img = np.expand_dims(splited_img, axis=-1)
-        splited_img -= 128
 
-        pred = interpreter(splited_img)
-        print(np.max(pred), np.min(pred))
-        # pred += 128
-        # pred /= 255
-        splited_img = func.draw_line(splited_img[0])
-        splited_img = (splited_img * 255).astype(np.uint8)
-        plt.subplot(1, 2, 1)
-        plt.imshow(splited_img)
-        plt.subplot(1, 2, 2)
-        print(np.max(pred[0, :, :, 1]), np.min(pred[0, :, :, 1]))
-        plt.imshow(pred[0, :, :, 1], vmin=0, vmax=1)
-        save_path = os.path.join(SAVE_DIR, f"{count}.png")
-        plt.savefig(save_path)
-        plt.close()
-        count += 1
+    # img = np.array(img).astype
+    input_img = img.copy()
+    input_img -= 128
+    input_img = np.expand_dims(input_img, axis=0)
+    # print(input_img.shape)
+    input_img = input_img.astype(np.int8)
+    # print(input_img.dtype)
+    pred = interpreter(input_img)
+    plt.subplot(1, 3, 1)
+    # img += 128
+    plt.imshow(img)
+    plt.subplot(1, 3, 2)
+    print(label.dtype)
+    plt.imshow(label)
+    plt.subplot(1, 3, 3)
+    plt.imshow(pred[0, :, :, 1], vmin=0, vmax=1)
+    save_path = os.path.join(SAVE_DIR, f"{i}.png")
+    plt.savefig(save_path)
+    plt.close()
+
+
+    # splited_img_lst = func.split_img(img)
+    # for splited_img in splited_img_lst:
+    #     splited_img = cv2.resize(splited_img, INPUT_SIZE)
+    #     splited_img = np.array([splited_img])
+    #     # print(splited_img.shape)
+    #     splited_img = np.expand_dims(splited_img, axis=-1)
+    #     splited_img -= 128
+
+    #     pred = interpreter(splited_img)
+    #     print(np.max(pred), np.min(pred))
+    #     # pred += 128
+    #     # pred /= 255
+    #     splited_img = func.draw_line(splited_img[0])
+    #     splited_img = (splited_img * 255).astype(np.uint8)
+    #     plt.subplot(1, 2, 1)
+    #     plt.imshow(splited_img)
+    #     plt.subplot(1, 2, 2)
+    #     print(np.max(pred[0, :, :, 1]), np.min(pred[0, :, :, 1]))
+    #     plt.imshow(pred[0, :, :, 1], vmin=0, vmax=1)
+    #     save_path = os.path.join(SAVE_DIR, f"{count}.png")
+    #     plt.savefig(save_path)
+    #     plt.close()
+    # count += 1
 
     # img = cv2.resize(img, INPUT_SIZE)
     # img_for_plot = img

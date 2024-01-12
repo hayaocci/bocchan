@@ -31,26 +31,27 @@ def write_label2(label_path, output_size):
     # Resize the label image to match the specified output size
     label_img = cv2.resize(label_img, (output_size[1], output_size[0]))
 
+    # # Binarize the label image (assuming it's a grayscale image)
+    # _, label_binary = cv2.threshold(label_img, 1, 255, cv2.THRESH_BINARY)
+
+    # # Normalize values to 0 or 1
+    # label_binary = label_binary / 255.0
+
     _, label_binary = cv2.threshold(label_img, 128, 255, cv2.THRESH_BINARY)
     label_binary = label_binary / 255.0
 
-    return label_binary
+    # plt.subplot(1, 2, 1)
+    # plt.imshow(label_img)
+    # plt.subplot(1, 2, 2)
+    # plt.imshow(label_binary)
+    # plt.show()
 
-def reverse_label(label_path, output_size):
-    # Read the label image
-    label_img = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
+    # print(label_binary.shape)
 
-    # Resize the label image to match the specified output size
-    label_img = cv2.resize(label_img, (output_size[1], output_size[0]))
-
-    _, label_binary = cv2.threshold(label_img, 128, 255, cv2.THRESH_BINARY_INV)
-    label_binary = label_binary / 255.0
-
-    # Reverse the label values (0 to 1 and 1 to 0)
-    label_binary = 1 - label_binary
+    # print(np.max(label_binary))
+    # print(np.min(label_binary))
 
     return label_binary
-
 
 def crop_center(img, width, height):
     # 画像のサイズを取得
@@ -88,14 +89,19 @@ if __name__ == "__main__":
         shutil.rmtree(DATA_DIR)
     os.makedirs(DATA_DIR)
 
-    train_dir = "rawdata/train"
+    # train_dir = "rawdata/train"
+    train_dir = "taguchi_dataset/train"
+
     img_train_pathes = os.listdir(os.path.join(train_dir, "images"))
+    # label_train_pathes = os.listdir(os.path.join(train_dir, "labels"))
     label_train_pathes = os.listdir(os.path.join(train_dir, "labels"))
+
 
     count = 0
     kind = set()
     for img_path, label_path in zip(tqdm(img_train_pathes), label_train_pathes):
         img_path = os.path.join(train_dir, "images", img_path)
+        # label_path = os.path.join(train_dir, "labels", label_path)
         label_path = os.path.join(train_dir, "labels", label_path)
 
         img = cv2.imread(img_path)
@@ -104,14 +110,16 @@ if __name__ == "__main__":
         small_rate = 0.25
         # small_height = int(img.shape[0] * small_rate)
         # small_width = int(img.shape[1] * small_rate)
-        # small_img = cv2.resize(img, (small_width, small_height))
-        # small_label = write_label(label_path, (small_height, small_width))
-
-        small_rate = 0.25
         small_height = 96
         small_width = 96
         small_img = cv2.resize(img, (small_width, small_height))
-        small_label = write_label(label_path, (12, 12))
+        
+        # グレースケール化
+        # small_img = cv2.cvtColor(small_img, cv2.COLOR_RGB2GRAY)
+
+        small_label = write_label2(label_path, (12, 12))
+
+        # print(small_img.shape)
 
         # plt.subplot(1, 2, 1)
         # plt.imshow(small_img)
@@ -131,12 +139,12 @@ if __name__ == "__main__":
         # plt.imshow(center_crop_label)
         # plt.show()
 
-        # gray = cv2.cvtColor(center_crop_img, cv2.COLOR_RGB2GRAY)
+        # gray = cv2.cvtColor(small_label, cv2.COLOR_RGB2GRAY)
         # # center_crop_img = np.stack([gray, gray, gray], axis=-1)
         # gray = gray.reshape(gray.shape[0], gray.shape[1], 1)
 
         small_label = np.expand_dims(small_label, axis=-1)
-
+        
         with h5py.File(save_path, "w") as f:
             f.create_dataset("img", data=small_img)
             f.create_dataset("label", data=small_label)
