@@ -225,6 +225,8 @@ custom_model.fit(
     validation_data=(x_valid, y_valid),
 )
 
+custim_model_path = "model/custom_model.h5"
+custom_model.save(custim_model_path)
 
 # %%
 
@@ -232,7 +234,7 @@ custom_model.fit(
 テストデータでテスト
 """
 
-test_dir = "test_result2"
+test_dir = "test_result_main/test_result_gloc"
 if os.path.exists(test_dir) == False:
     os.mkdir(test_dir)
 else:
