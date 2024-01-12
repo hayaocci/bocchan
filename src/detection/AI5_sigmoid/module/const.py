@@ -1,5 +1,6 @@
 import os
 
+# INPUT_SIZE = (96, 96, 3)
 INPUT_SIZE = (96, 96)
 NUM_AREA = 12  # 12の約数にすること
 LABEL_SIZE = (NUM_AREA, NUM_AREA)
