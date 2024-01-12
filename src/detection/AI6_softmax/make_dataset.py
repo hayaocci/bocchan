@@ -24,6 +24,33 @@ def write_label(label_path, output_size):
             label[y, x] = 1
     return label
 
+def write_label2(label_path, output_size):
+    # Read the label image
+    label_img = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
+
+    # Resize the label image to match the specified output size
+    label_img = cv2.resize(label_img, (output_size[1], output_size[0]))
+
+    _, label_binary = cv2.threshold(label_img, 128, 255, cv2.THRESH_BINARY)
+    label_binary = label_binary / 255.0
+
+    return label_binary
+
+def reverse_label(label_path, output_size):
+    # Read the label image
+    label_img = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
+
+    # Resize the label image to match the specified output size
+    label_img = cv2.resize(label_img, (output_size[1], output_size[0]))
+
+    _, label_binary = cv2.threshold(label_img, 128, 255, cv2.THRESH_BINARY_INV)
+    label_binary = label_binary / 255.0
+
+    # Reverse the label values (0 to 1 and 1 to 0)
+    label_binary = 1 - label_binary
+
+    return label_binary
+
 
 def crop_center(img, width, height):
     # 画像のサイズを取得
