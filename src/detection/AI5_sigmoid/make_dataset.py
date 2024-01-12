@@ -88,13 +88,16 @@ if __name__ == "__main__":
     train_dir = "taguchi_dataset/train"
 
     img_train_pathes = os.listdir(os.path.join(train_dir, "images"))
-    label_train_pathes = os.listdir(os.path.join(train_dir, "labels"))
+    # label_train_pathes = os.listdir(os.path.join(train_dir, "labels"))
+    label_train_pathes = os.listdir(os.path.join(train_dir, "labels2"))
+
 
     count = 0
     kind = set()
     for img_path, label_path in zip(tqdm(img_train_pathes), label_train_pathes):
         img_path = os.path.join(train_dir, "images", img_path)
-        label_path = os.path.join(train_dir, "labels", label_path)
+        # label_path = os.path.join(train_dir, "labels", label_path)
+        label_path = os.path.join(train_dir, "labels2", label_path)
 
         img = cv2.imread(img_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)

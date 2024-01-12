@@ -253,7 +253,7 @@ for i, img in enumerate(tqdm(os.listdir(test_img_dir))):
     # pred = np.array(pred * 255, dtype=np.uint8)
     # cv2.imwrite(os.path.join(test_dir, "result.png"), pred)
     plt.subplot(1, 2, 1)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     plt.imshow(img[0], cmap="gray")
     plt.subplot(1, 2, 2)
     plt.imshow(pred, vmin=0, vmax=1)
