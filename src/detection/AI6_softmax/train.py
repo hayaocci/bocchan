@@ -230,7 +230,7 @@ custom_model.compile(
 custom_model.fit(
     x_train,
     y_train,
-    batch_size=128,
+    batch_size=32,
     epochs=100,
     validation_data=(x_valid, y_valid),
     callbacks=[
@@ -274,7 +274,7 @@ custom_model = load_model("model/best_model.h5", custom_objects={'cross_loss': l
 # %%
 # for i, img in enumerate(tqdm(os.listdir(test_img_dir))):
 # for i, (img, label) in enumerate(tqdm(zip(os.listdir(test_img_dir), os.listdir(test_label_dir)))):
-for i, (img, label) in enumerate(zip(tqdm(os.listdir(test_img_dir), os.listdir(test_label_dir)))):
+for i, (img, label) in enumerate(zip(tqdm(os.listdir(test_img_dir)), os.listdir(test_label_dir))):
     img = os.path.join(test_img_dir, img)
     img = cv2.imread(img)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
