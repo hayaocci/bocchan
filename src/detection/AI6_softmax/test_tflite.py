@@ -10,9 +10,11 @@ from module.const import *
 from module import func, loss
 import shutil
 from tqdm import tqdm
+import matplotlib.ticker as ticker
+import csv
 
 TEST_DIR = "taguchi_dataset/test/images"
-SAVE_DIR = "test_result_main/test_quant"
+SAVE_DIR = "test_result_main/test_quant2"
 if os.path.exists(SAVE_DIR):
     shutil.rmtree(SAVE_DIR)
 os.makedirs(SAVE_DIR)
@@ -35,7 +37,6 @@ class TFLitePredictor:
 
 # print('Quantized model accuracy: ',evaluate_model(interpreter_quant))
 interpreter = TFLitePredictor(TFLITE_QUANT_MODEL_PATH)
-
 
 # imgs = os.listdir(TEST_DIR)
 # # imgs = imgs[::-1]
@@ -67,12 +68,14 @@ interpreter = TFLitePredictor(TFLITE_QUANT_MODEL_PATH)
 
 test_img_dir = "taguchi_dataset/test/images"
 test_label_dir = "taguchi_dataset/test/labels"
+iou_list = []
 
-for i, (img, label) in enumerate(zip(tqdm(os.listdir(test_img_dir), os.listdir(test_label_dir)))):
+for i, (img, label) in enumerate(zip(tqdm(os.listdir(test_img_dir)), os.listdir(test_label_dir))):
     img = cv2.imread(os.path.join(test_img_dir, img))
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     # img = np.expand_dims(img, axis=-1)
-
+    label = cv2.imread(os.path.join(test_label_dir, label))
+    # print(type(img), type(label))
     # img = np.array(img).astype
     input_img = img.copy()
     input_img -= 128
@@ -81,18 +84,52 @@ for i, (img, label) in enumerate(zip(tqdm(os.listdir(test_img_dir), os.listdir(t
     input_img = input_img.astype(np.int8)
     # print(input_img.dtype)
     pred = interpreter(input_img)
+
+    # print(label.shape, pred.shape)
+    pred_flat = pred.reshape(-1, 2)
+    label_flat = label.reshape(-1, 3)
+
+    # Get binary masks for predictions and labels
+    pred_mask = (pred_flat[:, 1] > 0.5).astype(int)  # Assuming class 1 is the positive class
+    label_mask = (label_flat[:, 2] > 0.5).astype(int)  # Assuming class 2 is the positive class
+
+    # Calculate intersection and union
+    intersection = np.sum(pred_mask * label_mask)
+    union = np.sum((pred_mask + label_mask) > 0)
+
+    # Calculate IOU
+    iou = intersection / union if union > 0 else 0.0
+    iou_list.append(iou)
+
+    
+
+    # plt.subplots_adjust(wspace=0.2, top=0.1)
     plt.subplot(1, 3, 1)
     # img += 128
-    plt.imshow(img)
+    plt.imshow(img, extent=[0, 96, 0, 96])
+    plt.locator_params(axis='x', nbins=4)
+    plt.locator_params(axis='y', nbins=4)
+    # plt.subplots_adjust(wspace=0.4)
     plt.subplot(1, 3, 2)
-    print(label.dtype)
-    plt.imshow(label)
+    # print(label.dtype)
+    plt.imshow(label, extent=[0, 12, 0, 12])
+    plt.locator_params(axis='x', nbins=4)
+    plt.locator_params(axis='y', nbins=4)
     plt.subplot(1, 3, 3)
-    plt.imshow(pred[0, :, :, 1], vmin=0, vmax=1)
+    plt.imshow(pred[0, :, :, 1], vmin=0, vmax=1, extent=[0, 12, 0, 12])
+    plt.locator_params(axis='x', nbins=4)
+    plt.locator_params(axis='y', nbins=4)
+    # plt.subplots_adjust(top=0.9, bottom=0.1, left=0.1, right=0.9, wspace=0.4)
+    plt.subplots_adjust(wspace=0.4)
+    plt.tight_layout()
     save_path = os.path.join(SAVE_DIR, f"{i}.png")
     plt.savefig(save_path)
     plt.close()
 
+# write iou to csv
+with open(os.path.join(SAVE_DIR, "iou.csv"), "w") as f:
+    writer = csv.writer(f)
+    writer.writerow(iou_list)
 
     # splited_img_lst = func.split_img(img)
     # for splited_img in splited_img_lst:
