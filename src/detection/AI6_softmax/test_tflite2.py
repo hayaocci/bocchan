@@ -13,8 +13,8 @@ from tqdm import tqdm
 import matplotlib.ticker as ticker
 import csv
 
-TEST_DIR = "taguchi_dataset/test/input_img_1"
-SAVE_DIR = "test_result_main/test_quant3"
+TEST_DIR = "taguchi_dataset/test/input_img_200"
+SAVE_DIR = "test_result_main/test_quant4_200"
 if os.path.exists(SAVE_DIR):
     shutil.rmtree(SAVE_DIR)
 os.makedirs(SAVE_DIR)
@@ -68,8 +68,9 @@ interpreter = TFLitePredictor(TFLITE_QUANT_MODEL_PATH)
 
 # test_img_dir = "taguchi_dataset/test/images"
 # test_label_dir = "taguchi_dataset/test/labels"
-iou_list = []
+iou_average_list = []
 def main(test_img_dir, test_label_dir, save_dir):
+    iou_list = []
     for i, (img, label) in enumerate(zip(tqdm(os.listdir(test_img_dir)), os.listdir(test_label_dir))):
         img = cv2.imread(os.path.join(test_img_dir, img))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -127,12 +128,20 @@ def main(test_img_dir, test_label_dir, save_dir):
         plt.close()
 
     iou_average = sum(iou_list) / len(iou_list)
-    iou_list.append(iou_average)
+    for i in range(len(iou_list)):
+        iou_list[i] = [iou_list[i]]
+
+    iou_list.append([iou_average])
+    iou_average_list.append([iou_average])
 
     # write iou to csv
-    with open(os.path.join(save_dir, "iou.csv"), "w") as f:
+    with open(os.path.join(save_dir, "iou.csv"), "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerows([[str(item) for item in iou_list]])
+        writer.writerows(iou_list)
+
+    with open(os.path.join(SAVE_DIR, "iou_average.csv"), "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerows(iou_average_list)
 
 
     # splited_img_lst = func.split_img(img)
@@ -177,8 +186,8 @@ def main(test_img_dir, test_label_dir, save_dir):
 
 
 for i in range(12):
-    test_img_dir = f"taguchi_dataset/test/input_img_1/{i}"
-    test_label_dir = f"taguchi_dataset/test/output_img_1/{i}"
+    test_img_dir = f"taguchi_dataset/test/input_img_200/{i}"
+    test_label_dir = f"taguchi_dataset/test/output_img_200/{i}"
     save_dir = os.path.join(SAVE_DIR, f"{i}")
     os.makedirs(save_dir)
     main(test_img_dir, test_label_dir, save_dir)
