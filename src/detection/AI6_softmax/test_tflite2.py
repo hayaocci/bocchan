@@ -11,10 +11,11 @@ from module import func, loss
 import shutil
 from tqdm import tqdm
 import matplotlib.ticker as ticker
+from decimal import Decimal
 import csv
 
 TEST_DIR = "taguchi_dataset/test/input_img_200"
-SAVE_DIR = "test_result_main/test_quant4_200"
+SAVE_DIR = "test_result_main/test_quant5_200"
 if os.path.exists(SAVE_DIR):
     shutil.rmtree(SAVE_DIR)
 os.makedirs(SAVE_DIR)
@@ -68,9 +69,16 @@ interpreter = TFLitePredictor(TFLITE_QUANT_MODEL_PATH)
 
 # test_img_dir = "taguchi_dataset/test/images"
 # test_label_dir = "taguchi_dataset/test/labels"
-iou_average_list = []
+average_list = []
+average_list.append(["iou", "precision", "recall", "f1"])
 def main(test_img_dir, test_label_dir, save_dir):
     iou_list = []
+    evaluation_list = []
+    evaluation_list.append(["name", "iou", "precision", "recall", "f1"])
+    precision_list = []
+    recall_list = []
+    f1_list = []
+
     for i, (img, label) in enumerate(zip(tqdm(os.listdir(test_img_dir)), os.listdir(test_label_dir))):
         img = cv2.imread(os.path.join(test_img_dir, img))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -100,9 +108,34 @@ def main(test_img_dir, test_label_dir, save_dir):
 
         # Calculate IOU
         iou = intersection / union if union > 0 else 0.0
+        # iou = int(iou)
         iou_list.append(iou)
 
-        
+        # calculate precision and recall
+        if np.sum(pred_mask) == 0:
+            precision = 0
+        else:
+            precision = intersection / np.sum(pred_mask)
+        recall = intersection / np.sum(label_mask)
+
+        # calculate f1 score
+        if precision + recall == 0:
+            f1 = 0
+        else:
+            f1 = 2 * precision * recall / (precision + recall)
+
+        # round
+        # precision = Decimal(str(precision))
+        # precision = precision.quantize(Decimal('0.00001'), rounding='ROUND_HALF_UP')
+        # recall = Decimal(str(recall))
+        # recall = recall.quantize(Decimal('0.00001'), rounding='ROUND_HALF_UP')
+        # f1 = Decimal(str(f1))
+        # f1 = f1.quantize(Decimal('0.00001'), rounding='ROUND_HALF_UP')
+
+        evaluation_list.append([i, iou, precision, recall, f1])        
+        precision_list.append(precision)
+        recall_list.append(recall)
+        f1_list.append(f1)
 
         # plt.subplots_adjust(wspace=0.2, top=0.1)
         plt.subplot(1, 3, 1)
@@ -127,22 +160,35 @@ def main(test_img_dir, test_label_dir, save_dir):
         plt.savefig(save_path)
         plt.close()
 
+    # for i in range(len(iou_list)):
+    #     iou_list[i] = [iou_list[i]]
+
+    # iou_list.append([iou_average])
+    # average_list.append
+
     iou_average = sum(iou_list) / len(iou_list)
+    precision_average = sum(precision_list) / len(precision_list)
+    recall_average = sum(recall_list) / len(recall_list)
+    f1_average = sum(f1_list) / len(f1_list)
+
+    average_list.append([iou_average, precision_average, recall_average, f1_average])
+
+
     for i in range(len(iou_list)):
         iou_list[i] = [iou_list[i]]
-
-    iou_list.append([iou_average])
-    iou_average_list.append([iou_average])
 
     # write iou to csv
     with open(os.path.join(save_dir, "iou.csv"), "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerows(iou_list)
 
-    with open(os.path.join(SAVE_DIR, "iou_average.csv"), "w", newline="") as f:
+    with open(os.path.join(SAVE_DIR, "average_list.csv"), "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerows(iou_average_list)
+        writer.writerows(average_list)
 
+    with open(os.path.join(save_dir, "evaluation_list.csv"), "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerows(evaluation_list)
 
     # splited_img_lst = func.split_img(img)
     # for splited_img in splited_img_lst:
@@ -193,3 +239,4 @@ for i in range(12):
     main(test_img_dir, test_label_dir, save_dir)
     # print(i)
     # break
+# %%
