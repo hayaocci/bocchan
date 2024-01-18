@@ -41,9 +41,32 @@ custom_model = keras.models.load_model("model/base_model_96_cut.h5")
 
 custom_model.summary()
 
-# custom_model.save(FULL_MODEL_PATH)
-conveter = tf.lite.TFLiteConverter.from_keras_model(custom_model)
-tflite_model = conveter.convert()
-float_model_size = len(tflite_model) / 1024 / 1024
-print(f"float model size: {float_model_size} MB")
-open("model/base_model_96_cut.tflite", "wb").write(tflite_model)
+# 層の数を取得
+num_layers = len(custom_model.layers)
+print("層の数:", num_layers)
+
+# # 特定の名前の層のインデックスを取得
+# target_layer_name = "block_6_expand_BN[0][0]"  # 変更が必要な層の名前に置き換える
+
+# try:
+#     target_layer_index = [layer.name for layer in custom_model.layers].index(target_layer_name)
+#     print(f"{target_layer_name}の層のインデックス: {target_layer_index}")
+# except ValueError:
+#     print(f"{target_layer_name}の層は見つかりませんでした")
+
+# custom_model = keras.models.load_model("model/custom_model_gloc.h5")
+
+# custom_model.summary()
+
+# # 層の数を取得
+# num_layers = len(custom_model.layers)
+# print("層の数:", num_layers)
+
+
+
+# # custom_model.save(FULL_MODEL_PATH)
+# conveter = tf.lite.TFLiteConverter.from_keras_model(custom_model)
+# tflite_model = conveter.convert()
+# float_model_size = len(tflite_model) / 1024 / 1024
+# print(f"float model size: {float_model_size} MB")
+# open("model/base_model_96_cut.tflite", "wb").write(tflite_model)
