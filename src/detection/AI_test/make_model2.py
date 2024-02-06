@@ -14,7 +14,7 @@ from tensorflow import keras
 
 
 model = tf.keras.applications.mobilenet_v2.MobileNetV2(
-    input_shape=(96, 96, 3),
+    input_shape=(224, 224, 3),
     alpha=0.35,
     include_top=True,
     weights=None,
@@ -27,4 +27,4 @@ model = tf.keras.applications.mobilenet_v2.MobileNetV2(
 
 print(model.summary())
 
-model.save('random_model_96.h5')
+model.save('newmodel_224.h5')

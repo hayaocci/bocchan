@@ -42,6 +42,8 @@ const int SEND_TIME = 20000; //[ms]
 bool result = false;
 int output_width, output_height; // 出力されるセグメンテーションサイズ
 
+unsigned long Mytime;
+
 void setup()
 {
     Serial.begin(115200);
@@ -148,7 +150,9 @@ void setup()
 // 上下左右の隣接するマスをチェックするための配列
 
 void loop()
-{
+{   
+    // time = millis();
+    // Serial.println(time);
     print("call takePicture");
     CamImage img = theCamera.takePicture();
     if (!img.isAvailable())
@@ -162,6 +166,8 @@ void loop()
     // int dfs_count = countDFS(result_mask1);
     // print("dfs_count: " + String(dfs_count) + "\n");
     free(result_mask1);
+    Mytime = millis();
+    Serial.println(Mytime);
 }
 
 // 人検知。動いている人を省く。
